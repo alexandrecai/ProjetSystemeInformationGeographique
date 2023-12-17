@@ -1,4 +1,4 @@
-DROP TABLE batiments;
+DROP TABLE IF EXISTS batiments;
 
 CREATE TABLE batiments (
     Composante VARCHAR(255),
