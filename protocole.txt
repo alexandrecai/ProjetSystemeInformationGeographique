@@ -1,0 +1,8 @@
+psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE USER adminprojet with password 'admin'"
+psql -h 127.0.0.1 -p 5432 -U postgres -c "CREATE DATABASE projet OWNER=adminprojet"
+psql -h 127.0.0.1 -p 5432 -d projet -U postgres
+create extension postgis;
+exit
+psql -h 127.0.0.1 -p 5432 -d projet -U adminprojet -f initialisation.sql
+psql -h 127.0.0.1 -p 5432 -d projet -U adminprojet
+select * from batiments;
