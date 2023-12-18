@@ -28,9 +28,9 @@ CREATE TABLE services (
 \COPY services(Nom_service, Description_service, Public_cible) FROM 'services.csv' WITH CSV HEADER;
 
 CREATE TABLE batiment_service (
+    Id SERIAL PRIMARY KEY,
     Batiment_id INTEGER REFERENCES batiments(Id),
-    Service_id INTEGER REFERENCES services(Id),
-    PRIMARY KEY (Batiment_id, Service_id)
+    Service_id INTEGER REFERENCES services(Id)
 );
 
 \COPY batiment_service(Batiment_id, Service_id) FROM 'batiment_service.csv' WITH CSV HEADER;
