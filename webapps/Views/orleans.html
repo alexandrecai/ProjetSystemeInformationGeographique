@@ -43,33 +43,124 @@
     </nav>
   </div>
   <div id="map" class="map"></div>
+  <div id="popup" class="popup"></div>
 
   <script type="text/javascript">
+
     // osm
     var osm=new ol.layer.Tile({
       extent: ol.proj.transformExtent([1.92,47.838,1.95,47.85],'EPSG:4326','EPSG:3857'),
             source: new ol.source.OSM({opaque:false})
       });
 
-    var geoserver='http://localhost:8080/geoserver/projet/wms'
-    var batiments= new ol.layer.Tile({
-      extent: ol.proj.transformExtent([1.92,47.838,1.95,47.85],'EPSG:4326','EPSG:3857'),
-      source: new ol.source.TileWMS({
-      url: geoserver,
-      params: {'LAYERS':'projet:batiments'},
-      serverType: 'geoserver'
-    })
+    var vectorLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({
+      url: 'http://localhost:8080/geoserver/projet/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=projet%3Abatiments&maxFeatures=50&outputFormat=application%2Fjson',
+      format: new ol.format.GeoJSON(),
+      }),
+      style: new ol.style.Style({
+        image: new ol.style.Circle({
+        radius: 6,
+        fill: new ol.style.Fill({
+        color: 'red',
+      }),
+      stroke: new ol.style.Stroke({
+         color: 'white',
+         width: 2,
+         }),
+       }),
+      }),
     });
-
-
     var map = new ol.Map({
       target: 'map',
-      layers: [osm,batiments],
+      layers: [osm,vectorLayer],
       view: new ol.View({
         center: ol.proj.fromLonLat([1.934,47.844]),
         zoom: 17
         })
       });
+
+      // Créez une source vectorielle pour les points en surbrillance
+var highlightSource = new ol.source.Vector();
+
+// Créez une couche vectorielle pour les points en surbrillance
+var highlightLayer = new ol.layer.Vector({
+  source: highlightSource,
+  style: new ol.style.Style({
+    image: new ol.style.Circle({
+      radius: 8,
+      fill: new ol.style.Fill({
+        color: 'yellow',
+      }),
+      stroke: new ol.style.Stroke({
+        color: 'red',
+        width: 2,
+      }),
+    }),
+  }),
+});
+
+// Ajoutez la couche en surbrillance à la carte
+map.addLayer(highlightLayer);
+
+// Créez l'interaction Select
+var select = new ol.interaction.Select({
+  layers: [vectorLayer],
+  condition: ol.events.condition.pointerMove,
+  style: new ol.style.Style({
+    image: new ol.style.Circle({
+      radius: 8,
+      fill: new ol.style.Fill({
+        color: 'yellow',
+      }),
+      stroke: new ol.style.Stroke({
+        color: 'red',
+        width: 2,
+      }),
+    }),
+  }),
+});
+
+// Ajoutez l'interaction Select à la carte
+map.addInteraction(select);
+
+// Écoutez les événements de sélection pour mettre à jour la couche en surbrillance
+select.on('select', function (event) {
+  highlightSource.clear();
+  if (event.selected.length > 0) {
+    highlightSource.addFeature(event.selected[0]);
+  }
+});
+
+var popup = new ol.Overlay({
+      element: document.getElementById('popup'),
+      positioning: 'bottom-center',
+      offset: [0, -10],
+      autoPan: true,
+      autoPanAnimation: {
+        duration: 250
+      }
+    });
+    map.addOverlay(popup);
+
+map.on('singleclick', function (event) {
+      var feature = map.forEachFeatureAtPixel(event.pixel, function (feature) {
+        return feature;
+      });
+
+      if (feature) {
+        // Si un point est cliqué, affichez les informations dans la pop-up
+        var properties = feature.getProperties();
+        popup.setPosition(event.coordinate);
+        document.getElementById('popup').innerHTML = properties.nom + " " + properties.composante;
+        popup.getElement().style.display = 'block';
+        console.log('Propriétés de l\'entité :', properties.nom);
+      } else {
+        // Si aucun point n'est cliqué, effacez le contenu de la pop-up et masquez-la
+        document.getElementById('popup').innerHTML = '';
+        popup.getElement().style.display = 'none';
+      }
+    });
 
   </script>
 </body>
