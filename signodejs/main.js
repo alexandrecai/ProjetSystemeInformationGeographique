@@ -22,18 +22,43 @@ let drawing = false;
 let listenNextClic = false;
 let featureUpdate;
 
+let tileGeoData;
+let centerGeoData;
+
+// get campus geo data
+switch (window.location.pathname.split('/')[2].split('.')[0]) {
+    case 'orleans': {
+        tileGeoData = [1.92, 47.838, 1.95, 47.85];
+        centerGeoData = [1.934, 47.844];
+        break;
+    }
+    case 'bourges': {
+        tileGeoData = [2.35,47.05,2.45,47.12];
+        centerGeoData = [2.419,47.099];
+        break;
+    }
+    case 'chateauroux': {
+        tileGeoData = [1.61,46.78,1.75,46.85];
+        centerGeoData = [1.685,46.811];
+        break;
+    }
+    default: {
+        tileGeoData = [1.92, 47.838, 1.95, 47.85];
+        centerGeoData = [1.934, 47.844];
+        break;
+    }
+}
+
+
 const osm = new TileLayer({
-    extent: proj.transformExtent([1.92, 47.838, 1.95, 47.85], 'EPSG:4326', 'EPSG:3857'),
+    extent: proj.transformExtent(tileGeoData, 'EPSG:4326', 'EPSG:3857'),
     source: new OSM(),
 });
 
-document.getElementById("bourges").addEventListener("click", function() {
-    loadData('campus', 'Bourges').then(r => {
-
-    });
-});
-document.getElementById("orleans").addEventListener("click", function() {
-    loadData('nom', 'EGS').then(r => {});
+document.getElementById("rechercheBatiment").addEventListener("click", function() {
+    const recherche = document.getElementById('nomRecherche').value;
+    console.log(recherche);
+    loadData('nom', recherche).then(r => {});
 });
 
 export async function loadData(propriete,value) {
@@ -61,8 +86,11 @@ export async function loadData(propriete,value) {
         // Redessinez la couche vectorielle
         vectorLayer.getSource().changed();
 
-        // Vous pouvez également ajuster le centrage/zoom de la carte si nécessaire
-        // map.getView().fit(vectorLayer.getSource().getExtent());
+        if(features.length>0) {
+            // Vous pouvez également ajuster le centrage/zoom de la carte si nécessaire
+            map.getView().fit(vectorLayer.getSource().getExtent());
+            map.getView().setZoom(19);
+        }
 
     } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
@@ -94,7 +122,7 @@ const map = new Map({
     target: 'map',
     layers: [osm, vectorLayer],
     view: new View({
-        center: fromLonLat([1.934, 47.844]),
+        center: fromLonLat(centerGeoData),
         zoom: 17,
     }),
 });
@@ -628,12 +656,13 @@ function resetBatiments() {
     document.getElementById('popup').innerHTML = '';
     popup.getElement().style.display = 'none';
 
+    document.getElementById('nomRecherche').value = '';
+
     map.removeInteraction(modify);
     map.removeInteraction(draw);
     map.removeInteraction(snap);
     
     vectorLayer.getSource().refresh()
-
 
 }
 
