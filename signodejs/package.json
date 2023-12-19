@@ -1,6 +1,7 @@
 {
   "name": "signodejs",
   "dependencies": {
+    "@turf/helpers": "^6.5.0",
     "ol": "8.2.0"
   },
   "devDependencies": {

@@ -49,3 +49,34 @@
         border-style: solid;
         border-color: #ffffff transparent transparent; /* Couleur de la flèche */
     }
+
+    #extract {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 60vh; /* Assurez-vous que la hauteur de la div prend toute la hauteur de la vue */
+    }
+
+    .extract-buttons-container {
+        display: flex;
+        gap: 10px; /* Espace entre les boutons */
+    }
+   
+    #csv, #geojson {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        background-color: #4CAF50;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+    }
+    
+    #csv:hover, #geojson:hover {
+        background-color: #45a049;
+    }
+    
+    
+    
+    

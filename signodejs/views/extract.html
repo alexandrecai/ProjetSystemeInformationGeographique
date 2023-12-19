@@ -4,6 +4,7 @@
         <script src="https://cdn.jsdelivr.net/npm/ol@v7.1.0/dist/ol.js"></script>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.1.0/ol.css">
         <link rel="stylesheet" href="../styles/sig-projet-style.css">
+        <script type="module" src="../js/extract.js"></script>
       </head>
     <body>
         <div id="nav">
@@ -19,6 +20,13 @@
         </div>
         <br>
         <br>
-        <h2>EXTRACT</h2>
+        <h2>Extraction des services</h2>
+        <div id="extract">
+            <p>Veuillez choisir un format d'extraction de services.</p>
+            <div class="extract-buttons-container">
+                <button id="csv">CSV</button>
+                <button id="geojson">GEOJSON</button>
+            </div>
+        </div>
     </body>
 </html>
