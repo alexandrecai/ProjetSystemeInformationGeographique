@@ -19,6 +19,8 @@ import Point from 'ol/geom/Point';
 
 
 let drawing = false;
+let listenNextClic = false;
+let featureUpdate;
 
 const osm = new TileLayer({
     extent: proj.transformExtent([1.92, 47.838, 1.95, 47.85], 'EPSG:4326', 'EPSG:3857'),
@@ -171,37 +173,51 @@ map.on('singleclick', event => {
 
         const popupElement = document.getElementById('popup');
 
-        const completed = false;
+        var completed = false;
 
-        // Construire le formulaire HTML
         const formulaireHTML = `
-            <form id="formulaireBatiment">
-                <label for="nomBatiment">Nom du bâtiment:</label>
-                <input type="text" id="nomBatiment" name="nomBatiment" required>
+        <form id="formulaireBatiment">
+            <label for="nomBatiment">Nom du bâtiment:</label>
+            <input type="text" id="nomBatiment" name="nomBatiment" required>
 
-                <br>
+            <br>
 
-                <label for="descriptifBatiment">Descriptif:</label>
-                <textarea id="composanteBatiment" name="composanteBatiment" required></textarea>
+            <label for="composanteBatiment">Composante:</label>
+            <input type="text" id="composanteBatiment" name="composanteBatiment" required>
 
-                <br>
+            <br>
+           
+            
+            <label for="cpBatiment">Code postal:</label>
+            <input type="number" id="cpBatiment" name="cpBatiment" required>
 
-                <button type="submit">Enregistrer</button>
-            </form>
+            <br>
+            
+            <label for="rueBatiment">Rue:</label>
+            <input type="text" id="rueBatiment" name="rueBatiment" required>
+
+            <br>
+
+            <button type="submit">Enregistrer</button>
+        </form>
         `;
+
 
         // Injecter le formulaire dans l'élément 'popup'
         popupElement.innerHTML = formulaireHTML;
     
         feature.setId("batiments."+ Date.now());
 
-        
+        const coordonnees = event.coordinate;
+
         // Ajouter un gestionnaire d'événements pour le formulaire
         const formulaireBatiment = document.getElementById('formulaireBatiment');
         formulaireBatiment.addEventListener('submit', function (event) {
-            event.preventDefault();                    
+            event.preventDefault();
             const nomBatiment = document.getElementById('nomBatiment').value;
             const composanteBatiment = document.getElementById('composanteBatiment').value;
+            const rueBatiment = document.getElementById('rueBatiment').value;
+            const cpBatiment = document.getElementById('cpBatiment').value;
     
             const nouvellesInformations = {
                 nom:nomBatiment,
@@ -217,6 +233,28 @@ map.on('singleclick', event => {
             popupElement.innerHTML = '';
             popup.getElement().style.display = 'none';
 
+            let campus = '';
+            switch (window.location.pathname.split('/')[2].split('.')[0]) {
+                case 'orleans': {
+                    campus = 'Orléans';
+                    break;
+                }
+                case 'bourges': {
+                    campus = 'Bourges';
+                    break;
+                }
+                case 'chateauroux': {
+                    campus = 'Chateauroux';
+                    break;
+                }
+                default: {
+                    campus = 'Orléans';
+                    break;
+                }
+            }
+
+            creerUnBatiment(coordonnees[0],coordonnees[1],composanteBatiment,nomBatiment,campus,cpBatiment,rueBatiment).then(r => {});
+
         });
 
         if (!completed) {
@@ -224,15 +262,16 @@ map.on('singleclick', event => {
             vectorLayer.getSource().changed();
         }
 
-        
     }
     else if (feature && feature.id_ != undefined) {
+
         const properties = feature.getProperties();
         console.log(event.coordinate);
         popup.setPosition(event.coordinate);
-        document.getElementById('popup').innerHTML = '<p class="title-batiment">' + properties.nom + ' ' + properties.composante + "</p>";
+        document.getElementById('popup').innerHTML = '<p class="title-batiment">' + properties.nom + ' - ' + properties.composante;
         popup.getElement().style.display = 'block';
-        console.log('Propriétés de l\'entité :', properties.nom + feature.id_);
+
+       
         let id = feature.id_.replace('batiments.','');
 
         // associate service to batiment
@@ -241,20 +280,64 @@ map.on('singleclick', event => {
                 if (features.length > 0 ){
                     document.getElementById('popup').innerHTML += "<i>Services :</i>";
                 }
+                if (features.length == 0) {
+                    document.getElementById('popup').innerHTML += "</p> <button id=\"modifierCoordonneesBtn\">Modifier Coordonnées</button>";
+                    // Sélectionnez le bouton par son ID
+                    const btnModifierCoordonnees = document.getElementById("modifierCoordonneesBtn");
+
+                    // Ajoutez un peu de style CSS pour centrer le bouton
+                    btnModifierCoordonnees.style.display = "block";  // Assurez-vous que le bouton est un élément de type bloc
+                    btnModifierCoordonnees.style.margin = "auto";   // Auto-marge horizontale
+                    document.getElementById("modifierCoordonneesBtn").addEventListener("click", function() {
+                        document.getElementById('popup').innerHTML = "<p> Cliquez sur la map pour déplacer le point ! </p>";
+                            listenNextClic = true;
+                            featureUpdate = feature;
+                    });
+                }
                 for(let i = 0; i < features.length; i++){
                     const serviceId = features[i].getProperties().service_id;
                     requeteId('services',serviceId).then((featureservice) => {
 
                         document.getElementById('popup').innerHTML += "<br>" + featureservice[0].getProperties().nom_service + ' : <span id="desc"> ' + featureservice[0].getProperties().description_service + "</span> destiné à " + featureservice[0].getProperties().public_cible;
-                    })
+                    }).then(() => {
+                        document.getElementById('popup').innerHTML += "</p> <button id=\"modifierCoordonneesBtn\">Modifier Coordonnées</button>";
+                        // Sélectionnez le bouton par son ID
+                        const btnModifierCoordonnees = document.getElementById("modifierCoordonneesBtn");
+
+                        // Ajoutez un peu de style CSS pour centrer le bouton
+                        btnModifierCoordonnees.style.display = "block";  // Assurez-vous que le bouton est un élément de type bloc
+                        btnModifierCoordonnees.style.margin = "auto";   // Auto-marge horizontale
+                        document.getElementById("modifierCoordonneesBtn").addEventListener("click", function() {
+                            document.getElementById('popup').innerHTML = "<p> Cliquez sur la map pour déplacer le point ! </p>";
+                                listenNextClic = true;
+                                featureUpdate = feature;
+                        });
+
+                    });
                 }
+
+                
+        
             })
             .catch(error => {
                 // Gérez les erreurs
                 console.error('Une erreur s\'est produite :', error);
             });
 
-    } else {
+       
+    } 
+    
+    else if(listenNextClic) {
+
+        const coordonneesLonLat = proj.toLonLat(event.coordinate, 'EPSG:3857');
+        featureUpdate.getGeometry().setCoordinates(coordonneesLonLat);
+        console.log("Regarde moi je t'en supplie" + featureUpdate.getGeometry().getCoordinates());
+        modifyFeature(featureUpdate);
+        listenNextClic = false;
+    
+    }
+    
+    else {
         document.getElementById('popup').innerHTML = '';
         popup.getElement().style.display = 'none';
     }
@@ -545,13 +628,10 @@ function resetBatiments() {
     document.getElementById('popup').innerHTML = '';
     popup.getElement().style.display = 'none';
 
-
     map.removeInteraction(modify);
     map.removeInteraction(draw);
     map.removeInteraction(snap);
-
     
-
     vectorLayer.getSource().refresh()
 
 
@@ -572,30 +652,6 @@ async function loadPublics(publicCible){
         vectorLayer.getSource().clear();
 
         processPublicCible(publicCible);
-
-       /* //methode getallServicesFrompublic(publicCible) qui retourne les id de tous les services qui contiennent le publicCible
-        var serviceIds = getAllServicesFromPublic(publicCible);
-        console.log("ici mec "+serviceIds);
-
-        serviceIds.forEach(serviceId => {
-            var features = await requeteFilter('batiment_service', 'service_id', serviceIds[0].replace('services.', ''));
-            for (let i = 0; i < features.length; i++) {
-                var batimentId = features[i].getProperties().batiment_id;
-                var featureBatiment = await requeteId('batiments', batimentId);
-                featureBatiment.forEach(feature => {
-                    feature.getGeometry().transform('EPSG:4326', 'EPSG:3857');
-                });
-
-            vectorLayer.getSource().addFeatures(featureBatiment);
-            }
-        });
-        
-        
-
-        //console.log("ouais ouais les bats:" + bats);
-        
-        // Redessinez la couche vectorielle
-        vectorLayer.getSource().changed();*/
 
     } catch (error) {
         // Gérez les erreurs
@@ -657,7 +713,104 @@ async function getAllServicesFromPublic(publicCible) {
     }
 }
 
-  
+
+async function modifyFeature(feature) {
+
+    console.log("WEEEEESH" + JSON.stringify(feature.getGeometry().getCoordinates()));
+    const coord = feature.getGeometry().getCoordinates();
+
+    console.log("1 : " + coord[0]);
+    console.log("2 : " + coord[1]);
+    console.log("3 : " + feature.getId());
+    
+
+    const transactionXML = `
+    <Transaction xmlns="http://www.opengis.net/wfs" service="WFS" version="1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wfs http://schemas.opengis.net/wfs/1.1.0/wfs.xsd">
+    <Update typeName="feature:batiments" xmlns:feature="projet">
+        <Property>
+            <Name>geometrie</Name>
+            <Value>
+                <Point xmlns="http://www.opengis.net/gml" srsName="EPSG:4326">
+                    <pos srsDimension="2">${coord[0]} ${coord[1]}</pos>
+                </Point>
+            </Value>
+        </Property>
+        <Filter xmlns="http://www.opengis.net/ogc">
+            <FeatureId fid="${feature.getId()}"/>
+        </Filter>
+    </Update>
+</Transaction>
+`;
+
+try {
+    const response = await fetch('http://localhost:8080/geoserver/projet/wfs', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+            'Content-Type': 'text/xml',
+        },
+        body: transactionXML,
+    });
+    console.log('Transaction WFS exécutée avec succès.');
+    resetBatiments();
+
+    } catch (error) {
+        console.error('Erreur lors de la requête WFS Transaction:', error);
+    }
+}
+ 
+async function creerUnBatiment(latitude,longitude,composante,nom,campus,cp,rue) {
+    const transactionXML = `
+        <wfs:Transaction service="WFS" version="1.0.0"
+            xmlns:wfs="http://www.opengis.net/wfs"
+            xmlns:projet="projet"
+            xmlns:gml="http://www.opengis.net/gml"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://www.opengis.net/wfs http://schemas.opengis.net/wfs/1.0.0/WFS-transaction.xsd projet http://localhost:8080/geoserver/wfs/DescribeFeatureType?typename=projet:batiments">
+            <wfs:Insert>
+                <projet:batiments>
+                    <projet:the_geom>
+                        <gml:Point srsName="http://www.opengis.net/gml/srs/epsg.xml#3857">
+                            <gml:coordinates decimal="." cs="," ts=" ">
+                                `+latitude+`,`+longitude+`
+                            </gml:coordinates>
+                        </gml:Point>
+                    </projet:the_geom>
+                    <projet:composante>`+composante+`</projet:composante>
+                    <projet:nom>`+nom+`</projet:nom>
+                    <projet:campus>`+campus+`</projet:campus>
+                    <projet:cp>`+cp+`</projet:cp>
+                    <projet:rue>`+rue+`</projet:rue>
+                    <projet:coordonnees_lat>`+latitude+`</projet:coordonnees_lat>
+                    <projet:coordonnees_lon>`+longitude+`</projet:coordonnees_lon>
+                    <projet:geometrie>
+                        <gml:Point srsName="http://www.opengis.net/gml/srs/epsg.xml#3857">
+                            <gml:coordinates decimal="." cs="," ts=" ">
+                                `+latitude+`,`+longitude+`
+                            </gml:coordinates>
+                        </gml:Point>
+                    </projet:geometrie>
+                </projet:batiments>
+            </wfs:Insert>
+        </wfs:Transaction>
+    `;
+
+    try {
+        const response = await fetch('http://localhost:8080/geoserver/projet/wfs', {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/xml',
+            },
+            body: transactionXML,
+        });
+        console.log('Transaction WFS exécutée avec succès.');
+
+    } catch (error) {
+        console.error('Erreur lors de la requête WFS Transaction:', error);
+    }
+}
+
 // Appelez la fonction pour créer les boutons
 createButtons();
 
