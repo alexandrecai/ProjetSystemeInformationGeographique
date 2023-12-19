@@ -142,6 +142,9 @@ const vectorLayer = new VectorLayer({
             duration: 250,
         },
     });
+
+    popup.getElement().classList.add('popup-container');
+
     map.addOverlay(popup);
 
 
@@ -151,20 +154,22 @@ const vectorLayer = new VectorLayer({
         if (feature) {
             const properties = feature.getProperties();
             popup.setPosition(event.coordinate);
-            document.getElementById('popup').innerHTML = properties.nom + ' ' + properties.composante;
+            document.getElementById('popup').innerHTML = '<p class="title-batiment">' + properties.nom + ' ' + properties.composante + "</p>";
             popup.getElement().style.display = 'block';
             console.log('Propriétés de l\'entité :', properties.nom + feature.id_);
-            let id = feature.id_.replace('batiments.', '');
-
+            let id = feature.id_.replace('batiments.','');
+    
+            // associate service to batiment
             requeteFilter('batiment_service', 'batiment_id', id)
                 .then(features => {
-                    for (let i = 0; i < features.length; i++) {
+                    if (features.length > 0 ){
+                        document.getElementById('popup').innerHTML += "<i>Services :</i>";
+                    }
+                    for(let i = 0; i < features.length; i++){
                         const serviceId = features[i].getProperties().service_id;
-                        requeteId('services', serviceId).then((featureservice) => {
-
-                            //TODO POUR MATTHIEU METTRE EN FORME + AJOUT DESCRIPTIF + AJOUT PUBLIC
-
-                            document.getElementById('popup').innerHTML += " " + featureservice[0].getProperties().nom_service;
+                        requeteId('services',serviceId).then((featureservice) => {
+    
+                            document.getElementById('popup').innerHTML += "<br>" + featureservice[0].getProperties().nom_service + ' : <span id="desc"> ' + featureservice[0].getProperties().description_service + "</span> destiné à " + featureservice[0].getProperties().public_cible;
                         })
                     }
                 })
@@ -172,6 +177,7 @@ const vectorLayer = new VectorLayer({
                     // Gérez les erreurs
                     console.error('Une erreur s\'est produite :', error);
                 });
+
         } else {
             document.getElementById('popup').innerHTML = '';
             popup.getElement().style.display = 'none';

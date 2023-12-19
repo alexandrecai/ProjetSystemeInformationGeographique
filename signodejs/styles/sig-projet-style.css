@@ -1,0 +1,51 @@
+    .map {
+        height: 90%;
+        width: 100%;
+    }
+    ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+    nav  a{ /* tous les liens a à l'intérieur de la balise nav */
+        float: left; /* effet flottant */
+        text-decoration: none; /* pas d'héritage avec effet souligné */
+        color: #ffffff; /* couleur du texte */
+        background: #000000; /* couleur de fond */
+        height: 36px; /* hauteur */
+        line-height: 33px; /* interligne */
+        padding: 0 10px; /* marges intérieur */
+        font-family: sans-serif; /* police d'écriture */
+        font-size: 13px; /* taille du texte */
+        transition: .5s; /* temps de transition lors du hover : une demi seconde */
+        margin-bottom: 10px; /* marge extérieure du bas uwuuuuuuuuuuu il est cool ce template */
+    }
+    nav  a:hover{ /* tous liens lors du survol dans la balise nav */
+        background: #005da4; /* couleur de fond */
+    }
+
+    /* popup */
+    .popup-container {
+        background-color: #ffffff; /* Couleur de fond blanche */
+        border-radius: 10px; /* Rayon des coins arrondis */
+        padding: 10px; /* Espace intérieur de la popup */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Ombre pour un effet de profondeur */
+    }
+    .popup-container p {
+        font-weight: bold;
+        text-align: center;
+    }
+    .popup-container #desc {
+        color: rgb(49, 49, 49);
+        
+    }
+    .popup-container:before {
+        content: '';
+        position: absolute;
+        bottom: -10px; /* Décalage vers le bas pour créer la flèche */
+        left: 50%; /* Position au centre horizontalement */
+        margin-left: -10px; /* Ajustement pour centrer la flèche */
+        border-width: 10px 10px 0; /* Taille de la flèche */
+        border-style: solid;
+        border-color: #ffffff transparent transparent; /* Couleur de la flèche */
+    }
