@@ -266,3 +266,90 @@ function buildUrlFilter(propriete,value) {
     return url;
 }
 
+
+
+
+// Ajoutez cette fonction pour créer les boutons des services
+async function createButtons() {
+    const buttonContainer = document.createElement('div');
+    buttonContainer.id = 'button-container';
+    buttonContainer.style.position = 'absolute';
+    buttonContainer.style.top = '50%';
+    buttonContainer.style.transform = 'translateY(-50%)';
+    buttonContainer.style.left = '10px';
+    document.body.appendChild(buttonContainer);
+
+    const allServices = await getAllServices();
+    console.log('Noms des services disponibles :', allServices);
+
+    allServices.forEach(serviceName => {
+        const button = document.createElement('button');
+        button.textContent = serviceName[1];
+        button.style.display = 'block';
+        button.style.marginBottom = '10px';
+        button.addEventListener('click', () => loadServices(serviceName[0]));
+        buttonContainer.appendChild(button);
+    });
+}
+
+  
+  //recuperer tous les noms de services dans projet:services
+  async function getAllServices() {
+    try {
+        const response = await fetch('http://localhost:8080/geoserver/projet/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=projet:services&outputFormat=application/json');
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const features = data.features;
+
+        
+        console.log('Liste des services :', features);
+
+        // Extrait uniquement les noms des services
+        const serviceNames = features.map(feature => [feature.id, feature.properties.nom_service]);
+        //console.log('Noms des services disponibles :', serviceNames);
+
+        return serviceNames;
+    } catch (error) {
+        console.error('Une erreur s\'est produite lors du chargement des services :', error);
+    }
+}
+
+
+
+
+
+async function loadServices(serviceId) {
+    try {
+        vectorLayer.getSource().clear();
+        console.log("ID du service cliqué :" + serviceId);
+        var features = await requeteFilter('batiment_service', 'service_id', serviceId.replace('services.', ''));
+        for (let i = 0; i < features.length; i++) {
+            var batimentId = features[i].getProperties().batiment_id;
+            var featureBatiment = await requeteId('batiments', batimentId);
+            featureBatiment.forEach(feature => {
+                feature.getGeometry().transform('EPSG:4326', 'EPSG:3857');
+            });
+
+            vectorLayer.getSource().addFeatures(featureBatiment);
+        }
+
+        //console.log("ouais ouais les bats:" + bats);
+        
+        // Redessinez la couche vectorielle
+        vectorLayer.getSource().changed();
+
+    } catch (error) {
+        // Gérez les erreurs
+        console.error('Une erreur s\'est produite :', error);
+    }
+}
+ 
+  
+// Appelez la fonction pour créer les boutons
+createButtons();
+
+
