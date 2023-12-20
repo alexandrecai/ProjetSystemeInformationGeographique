@@ -15,13 +15,17 @@ import * as filter from "ol/format/filter";
 import {Draw, Modify, Snap} from 'ol/interaction.js';
 
 
+//Variable de classes qui servent à gérer le mode edit (création d'un point)
 let drawing = false;
+//Variables pour gérer le déplacement d'un point
 let listenNextClic = false;
 let featureUpdate;
 
 let tileGeoData;
 let centerGeoData;
 
+
+//Permet de récupérer le nombre de batiment dans le but d'obtenir l'ID suivant (sert quand on créé des bâtiments pour lier un service)
 async function getNombreBatiment() {
     // URL de la requête WFS
     var wfsUrl = 'http://localhost:8080/geoserver/projet/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=projet%3Abatiments&maxFeatures=150&outputFormat=application%2Fjson';
@@ -45,7 +49,7 @@ async function getNombreBatiment() {
     }
 }
 
-// get campus geo data
+// Permet de centrer le map sur Orélans / Bourges / Chateauroux selon l'onglet choisi
 switch (window.location.pathname.split('/')[2].split('.')[0]) {
     case 'orleans': {
         tileGeoData = [1.88, 47.818, 1.98, 47.86];
@@ -69,17 +73,20 @@ switch (window.location.pathname.split('/')[2].split('.')[0]) {
     }
 }
 
-
+//Fond de map
 const osm = new TileLayer({
     extent: proj.transformExtent(tileGeoData, 'EPSG:4326', 'EPSG:3857'),
     source: new OSM(),
 });
 
+//Ajout de la méthode sur le bouton de recherche
 document.getElementById("rechercheBatiment").addEventListener("click", function() {
     const recherche = document.getElementById('nomRecherche').value;
     loadData('nom', recherche).then(r => {});
 });
 
+
+//Fonction pour la recherche
 export async function loadData(propriete,value) {
 
     try {
@@ -111,11 +118,13 @@ export async function loadData(propriete,value) {
     }
 }
 
+//Définition de la source de notre vecteur source : les bâtiments
 const sourceLayer = new VectorSource({
     url: 'http://localhost:8080/geoserver/projet/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=projet%3Abatiments&maxFeatures=150&outputFormat=application%2Fjson',
     format: new format.GeoJSON(),
 });
 
+//Définition de notre vecteur source
 const vectorLayer = new VectorLayer({
     source: sourceLayer,
     style: new Style({
@@ -132,6 +141,7 @@ const vectorLayer = new VectorLayer({
     }),
 });
 
+//Définition de la map avec fond de map + vectorLayer
 const map = new Map({
     target: 'map',
     layers: [osm, vectorLayer],
@@ -141,9 +151,10 @@ const map = new Map({
     }),
 });
 
+//Récupération du nombre de bâtiments (sert pour l'ajout de nouveaux bâtiments pour lier un service)
 let nbBats = await getNombreBatiment();
 
-
+//Permet la surbrillance d'un point
 const highlightSource = new VectorSource();
 const highlightLayer = new VectorLayer({
     source: highlightSource,
@@ -189,6 +200,7 @@ select.on('select', event => {
     }
 });
 
+//Positionnement et ajout de notre bulle popup qui donne entre autre les détails d'un PI
 const popup = new Overlay({
     element: document.getElementById('popup'),
     positioning: 'bottom-center',
@@ -204,9 +216,11 @@ popup.getElement().classList.add('popup-container');
 map.addOverlay(popup);
 
 
+//Ecoute des clics sur la map
 map.on('singleclick', async event => {
     const feature = map.forEachFeatureAtPixel(event.pixel, feature => feature);
 
+    //On rentre dans ce if si on est passé par le mode edit et qu'on ajoute une nouvelle feature qui n'a pas encore d'ID ni de paramètres
     if(feature && feature.id_ == undefined) {
       
         popup.setPosition(event.coordinate);
@@ -224,6 +238,7 @@ map.on('singleclick', async event => {
                 optionsHTML += `<option value="${id}">${nom_service}</option>`;
             }
 
+        //Formulaire de création du bâtiment
         const formulaireHTML = `
         <form id="formulaireBatiment">
             <label for="nomBatiment">Nom du bâtiment:</label>
@@ -312,18 +327,20 @@ map.on('singleclick', async event => {
             const batCree = await creerUnBatiment(coordonnees[0],coordonnees[1],composanteBatiment,nomBatiment,campus,cpBatiment,rueBatiment);
             //Création succès
             if (batCree) {
+                //Lier le bâtiment au service choisi
                 await ajouterServiceBat(++nbBats, idService.replace('services.',''));
-                vectorLayer.getSource().changed();
             }
             
         });
 
+        //Création échec, on clean le layer
         if (!completed) {
             vectorLayer.getSource().removeFeature(feature);
             vectorLayer.getSource().changed();
         }
 
     }
+    //On rentre dans ce if si on clique sur un PI et qu'il a un ID (= pas un nouvea PI, un PI existant)
     else if (feature && feature.id_ != undefined) {
 
         const properties = feature.getProperties();
@@ -334,7 +351,7 @@ map.on('singleclick', async event => {
        
         let id = feature.id_.replace('batiments.','');
 
-        // associate service to batiment
+        //On récupère les informations de ce PI et on les affiche, y compris tous les services liés
         requeteFilter('batiment_service', 'batiment_id', id)
             .then(features => {
                 if (features.length > 0 ){
@@ -384,33 +401,35 @@ map.on('singleclick', async event => {
         
             })
             .catch(error => {
-                // Gérez les erreurs
                 console.error('Une erreur s\'est produite :', error);
             });
 
        
     } 
-    
+    //On rentre dans ce if si on a cliqué sur un espace libre et de la carte et qu'on est en mode écoute avec le boolean listenNextClic à true
     else if(listenNextClic) {
 
+        //Récupération des coordonnées là où on a cliqué
         const coordonneesLonLat = proj.toLonLat(event.coordinate, 'EPSG:3857');
+        //Modification des coordonnées du point
         featureUpdate.getGeometry().setCoordinates(coordonneesLonLat);
         modifyFeature(featureUpdate);
         listenNextClic = false;
     
     }
     
+    //On a cliqué sur un espace vide sans rien faire d'autre, on efface la popup
     else {
         document.getElementById('popup').innerHTML = '';
         popup.getElement().style.display = 'none';
     }
 });
 
-
-
+//Servent à l'ajout d'un nouveau point
 let draw, snap;
 let modify = new Modify({source: sourceLayer});
 
+//Permet de passer en mode dessin
 function addInteractions() {
 
     map.addInteraction(modify);
@@ -427,6 +446,7 @@ function addInteractions() {
     map.addInteraction(snap);
 }
 
+//Permet de retirer le mode dessin
 function removeInteractions() {
     console.log("Mode dessin OFF");
     drawing = false;
@@ -441,6 +461,7 @@ function removeInteractions() {
 
 }
 
+//Ajout du bouton pour dessiner (edit)
 const button = document.createElement('button');
 button.id="buttonDrawing";
 button.textContent = "Edit";
@@ -449,6 +470,8 @@ button.addEventListener('click', () => { if (!drawing) {addInteractions()} else 
 
 document.getElementById('nav').appendChild(button);
 
+
+//Fonction qui permet de récupérer une feature selon le filtre donné
 async function requeteFilter(type, propriete, value) {
     try {
         const featureRequest = new WFS().writeGetFeature({
@@ -480,7 +503,7 @@ async function requeteFilter(type, propriete, value) {
 }
 
 
-
+//Fonction qui permet de récupérer une feature par son ID
 async function requeteId(type, value) {
     try {
         const url = 'http://localhost:8080/geoserver/wfs?' +
@@ -509,6 +532,7 @@ async function requeteId(type, value) {
     }
 }
 
+//Fonction qui permet de récupérer une ou plusieurs features selon un filtre
 function buildUrlFilter(propriete,value) {
     // Paramètres de base de l'URL
     var urlBase = "http://localhost:8080/geoserver/projet/ows";
@@ -526,7 +550,7 @@ function buildUrlFilter(propriete,value) {
 }
 
 
-//retourne une liste avec tous les publics mais que 1 fois
+//Retourne une liste avec tous les publics mais que 1 fois
 function singleListTraitement(allPublics){
     const uniquePublicsSet = new Set();
 
@@ -545,6 +569,7 @@ function singleListTraitement(allPublics){
     
 }
 
+//Fonction de création des boutons pour permettre un filtre selon les services / On lit dynamiquement les services disponibles et on génère les boutons en fonction
 async function createButtons() {
     const buttonContainer = document.createElement('div');
     buttonContainer.id = 'button-container';
@@ -582,7 +607,8 @@ async function createButtons() {
     buttonContainer.appendChild(button);
 }
 
-  async function getAllServices() {
+//Fonction de récupération de tous les services
+async function getAllServices() {
     try {
         const response = await fetch('http://localhost:8080/geoserver/projet/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=projet:services&outputFormat=application/json');
 
@@ -601,6 +627,7 @@ async function createButtons() {
     }
 }
 
+//Fonction pour récupérer les services correspondant aux publics
 async function getAllPublics() {
     try {
         const response = await fetch('http://localhost:8080/geoserver/projet/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=projet:services&outputFormat=application/json');
@@ -621,7 +648,7 @@ async function getAllPublics() {
     }
 }
 
-
+//Sert pour la recherche avec filtre
 async function loadServices(serviceId) {
     try {
         document.getElementById('popup').innerHTML = '';
@@ -644,6 +671,7 @@ async function loadServices(serviceId) {
     }
 }
 
+//Permet de reset le layer et de supprimer les filtres existants sur la map
 function resetBatiments() {
     
     document.getElementById('popup').innerHTML = '';
@@ -659,9 +687,7 @@ function resetBatiments() {
 
 }
 
-
-
-
+//Fonction de chargement des publics cibles
 async function loadPublics(publicCible){
     try {
         document.getElementById('popup').innerHTML = '';
@@ -677,7 +703,7 @@ async function loadPublics(publicCible){
    
 }
 
-
+//Fonction de process des publics cibles
 async function processPublicCible(publicCible) {
     try {
         var serviceIds = await getAllServicesFromPublic(publicCible);
@@ -695,12 +721,11 @@ async function processPublicCible(publicCible) {
             }
         }
     } catch (error) {
-        // Gérer les erreurs
         console.error('Une erreur s\'est produite :', error);
     }
 }
 
-
+//Fonction pour récupérer tous les services liés à un public cible donné
 async function getAllServicesFromPublic(publicCible) {
     try {
         const response = await fetch('http://localhost:8080/geoserver/wfs?request=GetFeature&service=WFS&version=2.0.0&typeName=projet:services&outputFormat=application/json');
@@ -724,6 +749,7 @@ async function getAllServicesFromPublic(publicCible) {
 }
 
 
+//Fonction de modification d'une feature (bâtiments)
 async function modifyFeature(feature) {
 
     const coord = feature.getGeometry().getCoordinates();
@@ -763,6 +789,7 @@ try {
     }
 }
 
+//Fonction d'ajout de la liaison bâtiment-service
 async function ajouterServiceBat(idBat, idService){
     const transactionXML = `
             <wfs:Transaction service="WFS" version="1.0.0"
@@ -795,7 +822,8 @@ async function ajouterServiceBat(idBat, idService){
         console.error('Erreur lors de la requête WFS Transaction:', error);
     }
 }
- 
+
+//Fonction de création d'un bâtiment
 async function creerUnBatiment(latitude,longitude,composante,nom,campus,cp,rue) {
     const transactionXML = `
         <wfs:Transaction service="WFS" version="1.0.0"
@@ -851,6 +879,8 @@ async function creerUnBatiment(latitude,longitude,composante,nom,campus,cp,rue) 
     }
 }
 
+
+//Appel de la création des boutons
 createButtons();
 
 
