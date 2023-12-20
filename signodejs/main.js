@@ -10,12 +10,9 @@ import Overlay from 'ol/Overlay';
 import { fromLonLat } from 'ol/proj';
 import * as proj from 'ol/proj';
 import * as format from "ol/format";
-import {log} from "ol/console";
 import {GeoJSON, WFS} from "ol/format";
 import * as filter from "ol/format/filter";
 import {Draw, Modify, Snap} from 'ol/interaction.js';
-import Feature from 'ol/Feature';
-import Point from 'ol/geom/Point';
 
 
 let drawing = false;
@@ -68,26 +65,21 @@ export async function loadData(propriete,value) {
         popup.getElement().style.display = 'none';
         const url = buildUrlFilter(propriete, value);
 
-        // Faites la requête pour obtenir les nouvelles données
         const response = await fetch(url);
         const data = await response.json();
 
-        // Mettez à jour les données du vectorLayer
         vectorLayer.getSource().clear();
 
-        // Assurez-vous de spécifier la projection si elle n'est pas incluse dans le GeoJSON
         const features = new format.GeoJSON().readFeatures(data, {
-            dataProjection: 'EPSG:4326', // Projection des données (peut varier selon votre cas)
-            featureProjection: 'EPSG:3857', // Projection pour affichage sur la carte (peut varier selon votre cas)
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857',
         });
 
         vectorLayer.getSource().addFeatures(features);
 
-        // Redessinez la couche vectorielle
         vectorLayer.getSource().changed();
 
         if(features.length>0) {
-            // Vous pouvez également ajuster le centrage/zoom de la carte si nécessaire
             map.getView().fit(vectorLayer.getSource().getExtent());
             map.getView().setZoom(19);
         }
@@ -193,8 +185,7 @@ map.on('singleclick', event => {
 
     if(feature && feature.id_ == undefined) {
         console.log("Michel c'est le Brazil");
-        //console.log(JSON.stringify(feature));
-        // Sélectionner l'élément avec l'ID 'popup'
+
         console.log(event.coordinate);
         popup.setPosition(event.coordinate);
         popup.getElement().style.display = 'block';
@@ -231,14 +222,12 @@ map.on('singleclick', event => {
         `;
 
 
-        // Injecter le formulaire dans l'élément 'popup'
         popupElement.innerHTML = formulaireHTML;
     
         feature.setId("batiments."+ Date.now());
 
         const coordonnees = event.coordinate;
 
-        // Ajouter un gestionnaire d'événements pour le formulaire
         const formulaireBatiment = document.getElementById('formulaireBatiment');
         formulaireBatiment.addEventListener('submit', function (event) {
             event.preventDefault();
@@ -310,12 +299,11 @@ map.on('singleclick', event => {
                 }
                 if (features.length == 0) {
                     document.getElementById('popup').innerHTML += "</p> <button id=\"modifierCoordonneesBtn\">Modifier Coordonnées</button>";
-                    // Sélectionnez le bouton par son ID
+
                     const btnModifierCoordonnees = document.getElementById("modifierCoordonneesBtn");
 
-                    // Ajoutez un peu de style CSS pour centrer le bouton
-                    btnModifierCoordonnees.style.display = "block";  // Assurez-vous que le bouton est un élément de type bloc
-                    btnModifierCoordonnees.style.margin = "auto";   // Auto-marge horizontale
+                    btnModifierCoordonnees.style.display = "block";
+                    btnModifierCoordonnees.style.margin = "auto";
                     document.getElementById("modifierCoordonneesBtn").addEventListener("click", function() {
                         document.getElementById('popup').innerHTML = "<p> Cliquez sur la map pour déplacer le point ! </p>";
                             listenNextClic = true;
@@ -329,12 +317,12 @@ map.on('singleclick', event => {
                         document.getElementById('popup').innerHTML += "<br>" + featureservice[0].getProperties().nom_service + ' : <span id="desc"> ' + featureservice[0].getProperties().description_service + "</span> destiné à " + featureservice[0].getProperties().public_cible;
                     }).then(() => {
                         document.getElementById('popup').innerHTML += "</p> <button id=\"modifierCoordonneesBtn\">Modifier Coordonnées</button>";
-                        // Sélectionnez le bouton par son ID
+
                         const btnModifierCoordonnees = document.getElementById("modifierCoordonneesBtn");
 
-                        // Ajoutez un peu de style CSS pour centrer le bouton
-                        btnModifierCoordonnees.style.display = "block";  // Assurez-vous que le bouton est un élément de type bloc
-                        btnModifierCoordonnees.style.margin = "auto";   // Auto-marge horizontale
+
+                        btnModifierCoordonnees.style.display = "block";
+                        btnModifierCoordonnees.style.margin = "auto";
                         document.getElementById("modifierCoordonneesBtn").addEventListener("click", function() {
                             document.getElementById('popup').innerHTML = "<p> Cliquez sur la map pour déplacer le point ! </p>";
                                 listenNextClic = true;
@@ -373,7 +361,7 @@ map.on('singleclick', event => {
 
 
 
-let draw, snap; // global so we can remove them later
+let draw, snap;
 let modify = new Modify({source: sourceLayer});
 
 function addInteractions() {
@@ -413,17 +401,14 @@ button.style.display = 'block';
 button.style.marginBottom = '10px';
 button.addEventListener('click', () => { if (!drawing) {addInteractions()} else { removeInteractions()} });
 
-// Positionnement en haut à droite
 button.style.position = 'fixed';
-button.style.top = '10px'; // Ajustez la valeur en fonction de votre mise en page
-button.style.right = '10px'; // Ajustez la valeur en fonction de votre mise en page
+button.style.top = '10px';
+button.style.right = '10px';
 
-// Ajouter le bouton au corps (body) du document
 document.body.appendChild(button);
 
 async function requeteFilter(type, propriete, value) {
     try {
-        // Generate a GetFeature request
         const featureRequest = new WFS().writeGetFeature({
             srsName: 'EPSG:4326',
             featureNS: 'projet',
@@ -433,7 +418,6 @@ async function requeteFilter(type, propriete, value) {
             filter: filter.equalTo(propriete, value),
         });
 
-        // Post the request and add the received features to a layer
         const response = await fetch('http://localhost:8080/geoserver/wfs', {
             method: 'POST',
             body: new XMLSerializer().serializeToString(featureRequest),
@@ -464,7 +448,6 @@ async function requeteId(type, value) {
             'outputFormat=json&' +
             'FEATUREID=' + type + '.' + value;
 
-// Utilisation de fetch pour effectuer la requête
         const response = await fetch(url);
 
 
@@ -494,10 +477,8 @@ function buildUrlFilter(propriete,value) {
     var maxFeatures = 100;
     var outputFormat = "application/json";
 
-    // Filtre CQL
     var cqlFilter = "CQL_FILTER="+propriete+"%20=%20%27"+value+"%27";
 
-    // Construction de l'URL complète
     var url = `${urlBase}?service=${service}&version=${version}&request=${request}&typeName=${typeName}&maxFeatures=${maxFeatures}&outputFormat=${outputFormat}&${cqlFilter}`;
     console.log(url);
     return url;
@@ -508,27 +489,21 @@ function buildUrlFilter(propriete,value) {
 function singleListTraitement(allPublics){
     const uniquePublicsSet = new Set();
 
-    // Parcours du tableau d'entrée
     allPublics.forEach(publicList => {
-        // Exclusion du préfixe "services." et division des publics
         const publicWithoutPrefix = publicList[1].replace('services.', '');
         const publics = publicWithoutPrefix.split('-');
 
-        // Ajout de chaque public à l'ensemble
         publics.forEach(publicItem => {
             uniquePublicsSet.add(publicItem);
         });
     });
 
-    // Conversion de l'ensemble en tableau pour la sortie
     const uniquePublicsList = Array.from(uniquePublicsSet);
 
     return uniquePublicsList;
     
 }
 
-
-// Ajoutez cette fonction pour créer les boutons des services et publics 
 async function createButtons() {
     const buttonContainer = document.createElement('div');
     buttonContainer.id = 'button-container';
@@ -539,11 +514,9 @@ async function createButtons() {
     document.body.appendChild(buttonContainer);
 
     const allServices = await getAllServices();
-    //console.log('Noms des services disponibles :', allServices);
 
     var allPublics = await getAllPublics();
     allPublics = singleListTraitement(allPublics);
-    //console.log('Noms des publics cibles :', allPublics);
 
     allServices.forEach(serviceName => {
         const button = document.createElement('button');
@@ -571,8 +544,6 @@ async function createButtons() {
     buttonContainer.appendChild(button);
 }
 
-  
-  //recuperer tous les noms de services dans projet:services
   async function getAllServices() {
     try {
         const response = await fetch('http://localhost:8080/geoserver/projet/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=projet:services&outputFormat=application/json');
@@ -587,9 +558,7 @@ async function createButtons() {
         
         console.log('Liste des services :', features);
 
-        // Extrait uniquement les noms des services
         const serviceNames = features.map(feature => [feature.id, feature.properties.nom_service]);
-        //console.log('Noms des services disponibles :', serviceNames);
 
         return serviceNames;
     } catch (error) {
@@ -597,7 +566,6 @@ async function createButtons() {
     }
 }
 
-//recuperer tous les publics dans projet:services
 async function getAllPublics() {
     try {
         const response = await fetch('http://localhost:8080/geoserver/projet/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=projet:services&outputFormat=application/json');
@@ -639,14 +607,9 @@ async function loadServices(serviceId) {
 
             vectorLayer.getSource().addFeatures(featureBatiment);
         }
-
-        //console.log("ouais ouais les bats:" + bats);
-        
-        // Redessinez la couche vectorielle
         vectorLayer.getSource().changed();
 
     } catch (error) {
-        // Gérez les erreurs
         console.error('Une erreur s\'est produite :', error);
     }
 }
@@ -670,10 +633,6 @@ function resetBatiments() {
 
 
 async function loadPublics(publicCible){
-    //recuperer tous les services qui contiennent le publicCible dans la table projet:services
-    //puis regarder dans projet:batiment_service les batiments en relation avec l'id des services que j'ai recuperé juste au dessus
-    //enfin retrouver les batiments a afficher sur ma carte 
-
     try {
         document.getElementById('popup').innerHTML = '';
         popup.getElement().style.display = 'none';
@@ -683,7 +642,6 @@ async function loadPublics(publicCible){
         processPublicCible(publicCible);
 
     } catch (error) {
-        // Gérez les erreurs
         console.error('Une erreur s\'est produite :', error);
     }
    
@@ -692,11 +650,9 @@ async function loadPublics(publicCible){
 
 async function processPublicCible(publicCible) {
     try {
-        // Récupérer les IDs des services
         var serviceIds = await getAllServicesFromPublic(publicCible);
         console.log("IDs des services obtenus :", serviceIds);
 
-        // Traiter chaque service
         for (let i = 0; i < serviceIds.length; i++) {
             var features = await requeteFilter('batiment_service', 'service_id', serviceIds[i].replace('services.', ''));
             for (let j = 0; j < features.length; j++) {
@@ -727,10 +683,8 @@ async function getAllServicesFromPublic(publicCible) {
         const json = await response.json();
         const features = json.features;
 
-        // Filtrer les services en fonction du public cible
         const filteredServices = features.filter(feature => feature.properties.public_cible.includes(publicCible));
 
-        // Récupérer les IDs des services filtrés
         const serviceIds = filteredServices.map(service => service.id);
 
         console.log('IDs des services pour le public cible ' + publicCible + ' :', serviceIds);
@@ -840,7 +794,6 @@ async function creerUnBatiment(latitude,longitude,composante,nom,campus,cp,rue) 
     }
 }
 
-// Appelez la fonction pour créer les boutons
 createButtons();
 
 
