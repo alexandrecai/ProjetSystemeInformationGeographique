@@ -25,7 +25,7 @@ let centerGeoData;
 // get campus geo data
 switch (window.location.pathname.split('/')[2].split('.')[0]) {
     case 'orleans': {
-        tileGeoData = [1.92, 47.838, 1.95, 47.85];
+        tileGeoData = [1.88, 47.818, 1.98, 47.86];
         centerGeoData = [1.934, 47.844];
         break;
     }
@@ -40,7 +40,7 @@ switch (window.location.pathname.split('/')[2].split('.')[0]) {
         break;
     }
     default: {
-        tileGeoData = [1.92, 47.838, 1.95, 47.85];
+        tileGeoData = [1.88, 47.818, 1.98, 47.86];
         centerGeoData = [1.934, 47.844];
         break;
     }

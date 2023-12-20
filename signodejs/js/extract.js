@@ -32,14 +32,17 @@ async function getAllServices() {
 async function loadServices(serviceId) {
     try {
         var features = await requeteFilter('batiment_service', 'service_id', serviceId.replace('services.', ''));
+        var coordonnees = [];
         for (let i = 0; i < features.length; i++) {
             var batimentId = features[i].getProperties().batiment_id;
             var featureBatiment = await requeteId('batiments', batimentId);
             featureBatiment.forEach(feature => {
                 feature.getGeometry().transform('EPSG:4326', 'EPSG:3857');
             });
-            return [featureBatiment[0].values_.coordonnees_lat, featureBatiment[0].values_.coordonnees_lon];
+            coordonnees.push([featureBatiment[0].values_.coordonnees_lat, featureBatiment[0].values_.coordonnees_lon]);
         }
+
+        return coordonnees;
 
     } catch (error) {
         // Gérez les erreurs
@@ -147,16 +150,17 @@ async function writeFile(outputFormat){
 }
 
 function writeCSV(services){
-    // Données CSV (remplacez cela par vos propres données)
+
+   // Données CSV (remplacez cela par vos propres données)
     var csvData = [
-        ["name", "description", "coordonnees_lat", "coordonnees_lon"],
+        ["name", "description", "coordonnees"],
     ];
 
-    for (let i = 0; i < services.length; i++){
-        csvData.push([services[i].name, services[i].description, services[i].coordonnees[0], services[i].coordonnees[1]]);
+    for (let i = 0; i < services.length; i++) {
+        var coordonneesString = JSON.stringify(services[i].coordonnees);
+        var ligne = [services[i].name, services[i].description, coordonneesString];
+        csvData.push(ligne);
     }
-
-    console.log(csvData);
 
     // Convertir les données en texte CSV
     const csvText = csvData.map(row => row.join(",")).join("\n");
@@ -175,15 +179,15 @@ function writeCSV(services){
 
     // Supprimer le lien de la page une fois le téléchargement terminé
     document.body.removeChild(link);
+
 }
 
 function writeGeoJSON(services){
     var jsonArray = [];
-
     for (let i = 0; i < services.length; i++){
         jsonArray.push({
             type: 'Feature',
-            geometry: turf.point([services[i].coordonnees[0], services[i].coordonnees[1]]),
+            geometry: turf.multiPoint(services[i].coordonnees),
             properties: {
               name: services[i].name,
               description: services[i].description,

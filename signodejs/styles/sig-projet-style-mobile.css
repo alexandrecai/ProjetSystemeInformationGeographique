@@ -17,7 +17,7 @@
         line-height: 33px; /* interligne */
         padding: 0 10px; /* marges intérieur */
         font-family: sans-serif; /* police d'écriture */
-        font-size: 13px; /* taille du texte */
+        font-size: 10px; /* taille du texte */
         transition: .5s; /* temps de transition lors du hover : une demi seconde */
         margin-bottom: 10px; /* marge extérieure du bas uwuuuuuuuuuuu il est cool ce template */
     }
@@ -40,7 +40,7 @@
         line-height: 33px; /* interligne */
         padding: 0 10px; /* marges intérieur */
         font-family: sans-serif; /* police d'écriture */
-        font-size: 13px; /* taille du texte */
+        font-size: 10px; /* taille du texte */
         transition: .5s; /* temps de transition lors du hover : une demi seconde */
         margin-bottom: 10px; /* marge extérieure du bas uwuuuuuuuuuuu il est cool ce template */
         border: none;
@@ -53,7 +53,7 @@
 
     /* Map */
     .map {
-        height: 88%;
+        height: 80%;
         width: 100%;
     }
 
@@ -151,7 +151,7 @@
 
     /* Search Bar */
     #searchBar {
-        margin-top: 20px;
+        margin-top: 20%;
         width: 99.8%;
         background-color: #000000;
         color: white;
@@ -160,7 +160,7 @@
         padding-bottom: 5px;
         font-family: sans-serif;
         font-size: 13px;
-        height: 24px;
+        min-height: 24px;
         border-radius: 8px;
     }
     
