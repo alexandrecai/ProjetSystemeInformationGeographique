@@ -22,6 +22,29 @@ let featureUpdate;
 let tileGeoData;
 let centerGeoData;
 
+async function getNombreBatiment() {
+    // URL de la requête WFS
+    var wfsUrl = 'http://localhost:8080/geoserver/projet/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=projet%3Abatiments&maxFeatures=150&outputFormat=application%2Fjson';
+
+    try {
+        // Utilisation de la fonction fetch pour effectuer la requête GET
+        const response = await fetch(wfsUrl);
+
+        // Vérifiez si la réponse est OK (statut 200)
+        if (!response.ok) {
+            throw new Error('La requête a échoué avec le statut : ' + response.status);
+        }
+
+        // Parsez le JSON
+        const data = await response.json();
+        return data.numberReturned;
+    } catch (error) {
+        // Gérez les erreurs ici
+        console.error('Erreur lors de la récupération des données :', error);
+        throw error; // Vous pouvez choisir de lancer à nouveau l'erreur ou de la traiter autrement
+    }
+}
+
 // get campus geo data
 switch (window.location.pathname.split('/')[2].split('.')[0]) {
     case 'orleans': {
@@ -54,7 +77,6 @@ const osm = new TileLayer({
 
 document.getElementById("rechercheBatiment").addEventListener("click", function() {
     const recherche = document.getElementById('nomRecherche').value;
-    console.log(recherche);
     loadData('nom', recherche).then(r => {});
 });
 
@@ -119,6 +141,8 @@ const map = new Map({
     }),
 });
 
+let nbBats = await getNombreBatiment();
+
 
 const highlightSource = new VectorSource();
 const highlightLayer = new VectorLayer({
@@ -180,19 +204,25 @@ popup.getElement().classList.add('popup-container');
 map.addOverlay(popup);
 
 
-map.on('singleclick', event => {
+map.on('singleclick', async event => {
     const feature = map.forEachFeatureAtPixel(event.pixel, feature => feature);
 
     if(feature && feature.id_ == undefined) {
-        console.log("Michel c'est le Brazil");
-
-        console.log(event.coordinate);
+      
         popup.setPosition(event.coordinate);
         popup.getElement().style.display = 'block';
 
         const popupElement = document.getElementById('popup');
 
         var completed = false;
+
+        var services = await getAllServices();
+    
+
+        let optionsHTML = '';
+            for (const [id, nom_service] of services) {
+                optionsHTML += `<option value="${id}">${nom_service}</option>`;
+            }
 
         const formulaireHTML = `
         <form id="formulaireBatiment">
@@ -217,6 +247,13 @@ map.on('singleclick', event => {
 
             <br>
 
+            <label for="serviceBatiment">Service:</label>
+            <select id="serviceBatiment" name="serviceBatiment" required>
+                ${optionsHTML}
+            </select>
+
+            <br>
+
             <button type="submit">Enregistrer</button>
         </form>
         `;
@@ -224,18 +261,20 @@ map.on('singleclick', event => {
 
         popupElement.innerHTML = formulaireHTML;
     
-        feature.setId("batiments."+ Date.now());
+        const idBat = Date.now();
+        feature.setId("batiments."+ idBat);
+        
 
         const coordonnees = event.coordinate;
 
         const formulaireBatiment = document.getElementById('formulaireBatiment');
-        formulaireBatiment.addEventListener('submit', function (event) {
+        formulaireBatiment.addEventListener('submit', async function (event) {
             event.preventDefault();
             const nomBatiment = document.getElementById('nomBatiment').value;
             const composanteBatiment = document.getElementById('composanteBatiment').value;
             const rueBatiment = document.getElementById('rueBatiment').value;
             const cpBatiment = document.getElementById('cpBatiment').value;
-    
+            const idService = document.getElementById('serviceBatiment').value;
             const nouvellesInformations = {
                 nom:nomBatiment,
                 composante: composanteBatiment
@@ -270,8 +309,13 @@ map.on('singleclick', event => {
                 }
             }
 
-            creerUnBatiment(coordonnees[0],coordonnees[1],composanteBatiment,nomBatiment,campus,cpBatiment,rueBatiment).then(r => {});
-
+            const batCree = await creerUnBatiment(coordonnees[0],coordonnees[1],composanteBatiment,nomBatiment,campus,cpBatiment,rueBatiment);
+            //Création succès
+            if (batCree) {
+                await ajouterServiceBat(++nbBats, idService.replace('services.',''));
+                vectorLayer.getSource().changed();
+            }
+            
         });
 
         if (!completed) {
@@ -283,7 +327,6 @@ map.on('singleclick', event => {
     else if (feature && feature.id_ != undefined) {
 
         const properties = feature.getProperties();
-        console.log(event.coordinate);
         popup.setPosition(event.coordinate);
         document.getElementById('popup').innerHTML = '<p class="title-batiment">' + properties.nom + ' - ' + properties.composante;
         popup.getElement().style.display = 'block';
@@ -352,7 +395,6 @@ map.on('singleclick', event => {
 
         const coordonneesLonLat = proj.toLonLat(event.coordinate, 'EPSG:3857');
         featureUpdate.getGeometry().setCoordinates(coordonneesLonLat);
-        console.log("Regarde moi je t'en supplie" + featureUpdate.getGeometry().getCoordinates());
         modifyFeature(featureUpdate);
         listenNextClic = false;
     
@@ -373,7 +415,7 @@ function addInteractions() {
 
     map.addInteraction(modify);
 
-    console.log("Je dessine bro !");
+    console.log("Mode dessin ON");
     drawing = true;
     document.getElementById("buttonDrawing").style.backgroundColor = '#4CAF50';
     draw = new Draw({
@@ -386,7 +428,7 @@ function addInteractions() {
 }
 
 function removeInteractions() {
-    console.log("Hors de question de dessiner ! ><");
+    console.log("Mode dessin OFF");
     drawing = false;
     document.getElementById("buttonDrawing").style.backgroundColor = '';
     
@@ -480,7 +522,6 @@ function buildUrlFilter(propriete,value) {
     var cqlFilter = "CQL_FILTER="+propriete+"%20=%20%27"+value+"%27";
 
     var url = `${urlBase}?service=${service}&version=${version}&request=${request}&typeName=${typeName}&maxFeatures=${maxFeatures}&outputFormat=${outputFormat}&${cqlFilter}`;
-    console.log(url);
     return url;
 }
 
@@ -552,9 +593,6 @@ async function createButtons() {
         const data = await response.json();
         const features = data.features;
 
-        
-        console.log('Liste des services :', features);
-
         const serviceNames = features.map(feature => [feature.id, feature.properties.nom_service]);
 
         return serviceNames;
@@ -574,10 +612,6 @@ async function getAllPublics() {
         const data = await response.json();
         const features = data.features;
 
-        
-        console.log('Liste des services :', features);
-
-       
         const serviceNames = features.map(feature => [feature.id, feature.properties.public_cible]);
      
 
@@ -593,7 +627,6 @@ async function loadServices(serviceId) {
         document.getElementById('popup').innerHTML = '';
         popup.getElement().style.display = 'none';
         vectorLayer.getSource().clear();
-        console.log("ID du service cliqué :" + serviceId);
         var features = await requeteFilter('batiment_service', 'service_id', serviceId.replace('services.', ''));
         for (let i = 0; i < features.length; i++) {
             var batimentId = features[i].getProperties().batiment_id;
@@ -648,7 +681,6 @@ async function loadPublics(publicCible){
 async function processPublicCible(publicCible) {
     try {
         var serviceIds = await getAllServicesFromPublic(publicCible);
-        console.log("IDs des services obtenus :", serviceIds);
 
         for (let i = 0; i < serviceIds.length; i++) {
             var features = await requeteFilter('batiment_service', 'service_id', serviceIds[i].replace('services.', ''));
@@ -684,8 +716,6 @@ async function getAllServicesFromPublic(publicCible) {
 
         const serviceIds = filteredServices.map(service => service.id);
 
-        console.log('IDs des services pour le public cible ' + publicCible + ' :', serviceIds);
-
         return serviceIds;
 
     } catch (error) {
@@ -696,13 +726,7 @@ async function getAllServicesFromPublic(publicCible) {
 
 async function modifyFeature(feature) {
 
-    console.log("WEEEEESH" + JSON.stringify(feature.getGeometry().getCoordinates()));
     const coord = feature.getGeometry().getCoordinates();
-
-    console.log("1 : " + coord[0]);
-    console.log("2 : " + coord[1]);
-    console.log("3 : " + feature.getId());
-    
 
     const transactionXML = `
     <Transaction xmlns="http://www.opengis.net/wfs" service="WFS" version="1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wfs http://schemas.opengis.net/wfs/1.1.0/wfs.xsd">
@@ -733,6 +757,39 @@ try {
     });
     console.log('Transaction WFS exécutée avec succès.');
     resetBatiments();
+
+    } catch (error) {
+        console.error('Erreur lors de la requête WFS Transaction:', error);
+    }
+}
+
+async function ajouterServiceBat(idBat, idService){
+    const transactionXML = `
+            <wfs:Transaction service="WFS" version="1.0.0"
+            xmlns:wfs="http://www.opengis.net/wfs"
+            xmlns:projet="projet"
+            xmlns:gml="http://www.opengis.net/gml"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://www.opengis.net/wfs http://schemas.opengis.net/wfs/1.0.0/WFS-transaction.xsd projet http://localhost:8080/geoserver/wfs/DescribeFeatureType?typename=projet:batiment_service">
+            <wfs:Insert>
+                <projet:batiment_service>
+                <projet:batiment_id>${idBat}</projet:batiment_id>
+                <projet:service_id>${idService}</projet:service_id>
+                </projet:batiment_service>
+            </wfs:Insert>
+        </wfs:Transaction>
+    `;
+
+    try {
+        const response = await fetch('http://localhost:8080/geoserver/projet/wfs', {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/xml',
+            },
+            body: transactionXML,
+        });
+        console.log('Transaction WFS exécutée avec succès.');
 
     } catch (error) {
         console.error('Erreur lors de la requête WFS Transaction:', error);
@@ -785,9 +842,12 @@ async function creerUnBatiment(latitude,longitude,composante,nom,campus,cp,rue) 
             body: transactionXML,
         });
         console.log('Transaction WFS exécutée avec succès.');
+        return true;
+    
 
     } catch (error) {
         console.error('Erreur lors de la requête WFS Transaction:', error);
+        return false;
     }
 }
 
