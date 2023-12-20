@@ -6,21 +6,22 @@
     <link rel="stylesheet" href="../styles/sig-projet-style.css">
 </head>
 <body>
-    <div id="nav">
-        <nav>
-            <ul>
-                <li><a href="orleans.html">Orléans</a></li>
-                <li><a href="bourges.html">Bourges</a></li>
-                <li><a href="chateauroux.html">Châteauroux</a></li>
-                <li><a href="extract.html">Extraction des données</a></li>
-            </ul>
-        </nav>
-    </div>
-<div id="map" class="map"></div>
-<div id="popup" class="popup"></div>
-<script type="module" src="../main.js"></script>
-<div style="margin: 50px;"></div>
-<label for="nomRecherche">Recherche par nom:</label>
-<input type="text" id="nomRecherche" name="nomRecherche" required>
-<button id="rechercheBatiment" type="submit">Rechercher</button>
+  <div id="nav">
+      <nav>
+          <ul>
+              <li><a href="orleans.html">Orléans</a></li>
+              <li><a href="bourges.html">Bourges</a></li>
+              <li><a href="chateauroux.html">Châteauroux</a></li>
+              <li><a href="extract.html">Extraction des données</a></li>
+          </ul>
+      </nav>
+  </div>
+  <div id="map" class="map"></div>
+  <div id="popup" class="popup"></div>
+  <script type="module" src="../main.js"></script>
+  <div id="searchBar">
+    <label for="nomRecherche">Recherche par nom:</label>
+    <input type="text" id="nomRecherche" name="nomRecherche" required>
+    <button id="rechercheBatiment" type="submit">🔎</button>
+  </div>
 </body>
