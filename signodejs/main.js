@@ -397,15 +397,10 @@ function removeInteractions() {
 const button = document.createElement('button');
 button.id="buttonDrawing";
 button.textContent = "Edit";
-button.style.display = 'block';
-button.style.marginBottom = '10px';
 button.addEventListener('click', () => { if (!drawing) {addInteractions()} else { removeInteractions()} });
 
-button.style.position = 'fixed';
-button.style.top = '10px';
-button.style.right = '10px';
 
-document.body.appendChild(button);
+document.getElementById('nav').appendChild(button);
 
 async function requeteFilter(type, propriete, value) {
     try {
