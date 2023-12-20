@@ -316,19 +316,24 @@ map.on('singleclick', event => {
 
                         document.getElementById('popup').innerHTML += "<br>" + featureservice[0].getProperties().nom_service + ' : <span id="desc"> ' + featureservice[0].getProperties().description_service + "</span> destiné à " + featureservice[0].getProperties().public_cible;
                     }).then(() => {
-                        document.getElementById('popup').innerHTML += "</p> <button id=\"modifierCoordonneesBtn\">Modifier Coordonnées</button>";
+                       if(i==features.length-1){
+                            document.getElementById('popup').innerHTML += "</p> <button id=\"modifierCoordonneesBtn\">Modifier Coordonnées</button>";
+                            
+                                // Sélectionnez le bouton par son ID
+                            const btnModifierCoordonnees = document.getElementById("modifierCoordonneesBtn");
 
-                        const btnModifierCoordonnees = document.getElementById("modifierCoordonneesBtn");
-
-
-                        btnModifierCoordonnees.style.display = "block";
-                        btnModifierCoordonnees.style.margin = "auto";
-                        document.getElementById("modifierCoordonneesBtn").addEventListener("click", function() {
+                            // Ajoutez un peu de style CSS pour centrer le bouton
+                            btnModifierCoordonnees.style.display = "block";  // Assurez-vous que le bouton est un élément de type bloc
+                            btnModifierCoordonnees.style.margin = "auto";   // Auto-marge horizontale
+                            document.getElementById("modifierCoordonneesBtn").addEventListener("click", function() {
+                            
                             document.getElementById('popup').innerHTML = "<p> Cliquez sur la map pour déplacer le point ! </p>";
-                                listenNextClic = true;
-                                featureUpdate = feature;
-                        });
-
+                            listenNextClic = true;
+                            featureUpdate = feature;
+                            
+                            
+                            });
+                        }
                     });
                 }
 
