@@ -90,7 +90,7 @@ export async function loadData(propriete,value) {
 }
 
 const sourceLayer = new VectorSource({
-    url: 'http://localhost:8080/geoserver/projet/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=projet%3Abatiments&maxFeatures=50&outputFormat=application%2Fjson',
+    url: 'http://localhost:8080/geoserver/projet/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=projet%3Abatiments&maxFeatures=150&outputFormat=application%2Fjson',
     format: new format.GeoJSON(),
 });
 
@@ -516,8 +516,7 @@ async function createButtons() {
     allServices.forEach(serviceName => {
         const button = document.createElement('button');
         button.textContent = serviceName[1];
-        button.style.display = 'block';
-        button.style.marginBottom = '10px';
+        button.classList.add('lavache');
         button.addEventListener('click', () => loadServices(serviceName[0]));
         buttonContainer.appendChild(button);
     });
@@ -525,16 +524,14 @@ async function createButtons() {
     allPublics.forEach(publicCible => {
         const button = document.createElement('button');
         button.textContent = publicCible;
-        button.style.display = 'block';
-        button.style.marginBottom = '10px';
+        button.classList.add('lavache');
         button.addEventListener('click', () => loadPublics(publicCible));
         buttonContainer.appendChild(button);
     });
 
     const button = document.createElement('button');
     button.textContent = "Reset";
-    button.style.display = 'block';
-    button.style.marginBottom = '10px';
+    button.classList.add('lavache');
     button.addEventListener('click', () => resetBatiments());
     buttonContainer.appendChild(button);
 }
