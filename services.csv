@@ -1,3 +1,9 @@
 Nom_service,Description_service,Public_cible
 LIFO,description du LIFO,Personnel
-Departement Informatique (UFR ST),description du departement informatique,Personnel-Etudiants
+UFR ST,description du departement informatique,Personnel-Etudiants
+Departement DEG,description du DEG,Personnel-Etudiants
+STAPS,description de STAPS,Etudiants
+Lettres,description de Lettres,Etudiants
+Crous,description du Crous,Personnel
+Restauration,description restauration,Personnel-Etudiants
+Culturel,description culturel,Etudiants
